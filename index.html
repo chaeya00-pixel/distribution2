@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>상품별 매출집계 대시보드 (2601~2603)</title>
+    <title>상품별 매출집계 대시보드 (2601~2605)</title>
     <link href="https://fonts.googleapis.com/css2?family=Pretendard:wght@300;400;500;600;700;800&display=swap"
         rel="stylesheet" />
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
@@ -790,9 +790,10 @@
 
 
     <script src="data.js"></script>
+    <script src="search_data.js?v=260605"></script>
     <script>
         const RAW_DATA = typeof DASHBOARD_DATA !== 'undefined' ? DASHBOARD_DATA.RAW_DATA : {rows: [], team_list: [], gubun_list: []};
-        const SEARCH_DATA = typeof DASHBOARD_DATA !== 'undefined' ? DASHBOARD_DATA.SEARCH_DATA : [];
+        // SEARCH_DATA is now loaded directly from search_data.js
         const ACT_MONTH4_DATA = typeof DASHBOARD_DATA !== 'undefined' ? DASHBOARD_DATA.ACT_MONTH4_DATA : {};
         const INITIAL_ACTIVITY_DATA = typeof DASHBOARD_DATA !== 'undefined' ? DASHBOARD_DATA.INITIAL_ACTIVITY_DATA : [];
     </script>
@@ -806,7 +807,7 @@
                 <h1>📊 상품별 매출집계 대시보드 <span
                         style="font-size:0.6em; background:#3fb950; color:#fff; padding:2px 8px; border-radius:10px; margin-left:10px; vertical-align:middle;">DATA
                         VERIFIED ✅</span></h1>
-                <p>2601 ~ 2603 통합 · 중분류1 기준 · 기준일: 2026-04-10</p>
+                <p>2601 ~ 2605 통합</p>
             </div>
             <div class="badge" id="totalBadge" style="flex-shrink:0;">총 로딩중…</div>
         </div>
@@ -822,12 +823,46 @@
 
         <div id="menu-fspromo" class="menu-view active" style="padding: 20px;">
             <h2 style="margin-bottom: 20px; color: var(--text);">📈 FS 프로모션 월 절감액 (목표 대비 실적)</h2>
-            <div style="background: var(--surface); padding: 20px; border-radius: 12px; border: 1px solid var(--border); margin-bottom: 20px;">
-                <h3 style="margin-bottom: 15px; color: var(--text); text-align: center;">팀 전체 월별 목표 대비 실적 (단위: 백만원)</h3>
-                <canvas id="fsPromoTeamChart" height="80"></canvas>
-            </div>
-            <h3 style="margin-bottom: 15px; color: var(--text);">👤 담당자별 월별 목표 대비 실적 (단위: 백만원)</h3>
-            <div id="managerChartsContainer" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); gap: 20px;">
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                <!-- Left Column: Charts -->
+                <div>
+                    <div style="background: var(--surface); padding: 20px; border-radius: 12px; border: 1px solid var(--border); margin-bottom: 20px; position: relative;">
+                        <h3 id="teamChartTitle" style="margin-bottom: 15px; color: var(--text); text-align: center; font-size: 1rem;">팀 전체 월별 목표 대비 실적 (단위: 백만원)</h3>
+                        <button onclick="toggleTeamRatio()" style="position: absolute; top: 15px; right: 15px; padding: 4px 8px; background: var(--surface2); border: 1px solid var(--border); color: var(--text); border-radius: 6px; cursor: pointer; font-size: 0.7rem;">담당자별 비율</button>
+                        <canvas id="fsPromoTeamChart" height="150"></canvas>
+                        <canvas id="fsPromoTeamRatioChart" height="150" style="display: none;"></canvas>
+                    </div>
+
+                    <h3 style="margin-bottom: 15px; color: var(--text); font-size: 1.1rem;">👤 담당자별 목표 대비 실적 (단위: 백만원)</h3>
+                    <div id="managerChartsContainer" style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px;">
+                    </div>
+                </div>
+
+                <!-- Right Column: Top 10 Ranking -->
+                <div style="background: var(--surface); padding: 20px; border-radius: 12px; border: 1px solid var(--border);">
+                    <h3 style="margin-bottom: 15px; color: var(--text); font-size: 1.1rem; display: flex; justify-content: space-between; align-items: center;">
+                        <span>🏆 절감액 상위 품목 랭킹 Top 20</span>
+                        <button onclick="renderFsPromoTop10()" style="padding: 4px 10px; font-size: 0.75rem; border-radius: 4px; background: var(--surface2); color: var(--text); border: 1px solid var(--border); cursor: pointer;">새로고침</button>
+                    </h3>
+                    <div style="overflow-x: auto;">
+                        <table class="data-table" style="min-width: 100%; font-size: 0.85rem;">
+                            <thead>
+                                <tr>
+                                    <th style="width: 50px; text-align: center;">순위</th>
+                                    <th style="width: 100px;">상품코드</th>
+                                    <th>상품명</th>
+                                    <th style="width: 80px; text-align: center;">담당자</th>
+                                    <th style="width: 90px; text-align: right;">절감액<br><span style="font-size:0.7em;font-weight:normal">(백만원)</span></th>
+                                    <th style="width: 100px;">데이터 막대</th>
+                                </tr>
+                            </thead>
+                            <tbody id="fsPromoTop10Tbody">
+                                <tr><td colspan="6" style="text-align: center; color: var(--muted); padding: 20px;">'절감 Activity' 메뉴의 데이터를 기반으로 자동 집계됩니다.</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
             </div>
         </div>
         <script>
@@ -879,6 +914,60 @@
                         }
                     }
                 });
+                
+                // --- 담당자별 실적 차트 (누적 막대 그래프) ---
+                const managerColors = ["#FF6384", "#36A2EB", "#FFCE56", "#4BC0C0", "#9966FF", "#FF9F40", "#8AC926", "#1982C4", "#F15BB5", "#00F5D4"];
+                const ratioDatasets = [];
+                let colorIdx = 0;
+
+                for (const [manager, mgrData] of Object.entries(data.managers)) {
+                    ratioDatasets.push({
+                        label: manager,
+                        data: toMil(mgrData.actual),
+                        backgroundColor: managerColors[colorIdx % managerColors.length],
+                    });
+                    colorIdx++;
+                }
+
+                const ctxRatio = document.getElementById("fsPromoTeamRatioChart").getContext("2d");
+                new Chart(ctxRatio, {
+                    type: "bar",
+                    data: { labels: months, datasets: ratioDatasets },
+                    options: {
+                        responsive: true,
+                        scales: {
+                            x: { stacked: true },
+                            y: { 
+                                stacked: true, 
+                                beginAtZero: true,
+                                ticks: { callback: function(value) { return value.toLocaleString(); } } 
+                            }
+                        },
+                        plugins: {
+                            tooltip: { callbacks: { label: function(context) { return context.dataset.label + ": " + Math.round(context.parsed.y).toLocaleString() + " 백만원"; } } }
+                        }
+                    }
+                });
+                
+                window.toggleTeamRatio = function() {
+                    const chart1 = document.getElementById('fsPromoTeamChart');
+                    const chart2 = document.getElementById('fsPromoTeamRatioChart');
+                    const title = document.getElementById('teamChartTitle');
+                    const btn = event.target;
+                    if (chart1.style.display === 'none') {
+                        chart1.style.display = 'block';
+                        chart2.style.display = 'none';
+                        title.textContent = '팀 전체 월별 목표 대비 실적 (단위: 백만원)';
+                        btn.textContent = '담당자별 실적 보기';
+                    } else {
+                        chart1.style.display = 'none';
+                        chart2.style.display = 'block';
+                        title.textContent = '담당자별 월별 실적 누계 (단위: 백만원)';
+                        btn.textContent = '목표 대비 보기';
+                    }
+                };
+                // ---------------------------------------------
+
                 // 담당자별 최대값 계산 (Y축 스케일 통일용)
                 let globalMax = 0;
                 for (const mgrData of Object.values(data.managers)) {
@@ -988,12 +1077,11 @@
                             <th style="padding:12px; text-align:left; color:var(--muted); font-size:0.75rem;">협력사</th>
                             <th style="padding:12px; text-align:left; color:var(--muted); font-size:0.75rem;">월별 사용량
                             </th>
-                            <th style="padding:12px; text-align:right; color:var(--muted); font-size:0.75rem;">실구매가</th>
+                            <th style="padding:12px; text-align:right; color:var(--muted); font-size:0.75rem;">실구매가<br><span style="font-size:0.65rem;">(6/5일 기준)</span></th>
                             <th style="padding:12px; text-align:right; color:var(--muted); font-size:0.75rem;">평균 판매단가
                             </th>
                             <th style="padding:12px; text-align:right; color:var(--muted); font-size:0.75rem;">총 매출금액
                             </th>
-                            <th style="padding:12px; text-align:right; color:var(--muted); font-size:0.75rem;">이익률</th>
                             <th style="padding:12px; text-align:left; color:var(--muted); font-size:0.75rem;">가장 많이 사용한
                                 본점 TOP 3</th>
                         </tr>
@@ -1114,7 +1202,7 @@
             </div>
         </div>
     </main>
-    <footer>상품별 매출집계 대시보드 · 2601~2603 통합 · 2026-04-10</footer>
+    <footer>상품별 매출집계 대시보드 · 2601~2605 통합</footer>
     <!-- PASSWORD OVERLAY -->
     <div id="pwdOverlay"
         style="position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(13,17,23,0.98);z-index:9999;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(5px);">
@@ -1145,6 +1233,41 @@
     </div> <!-- menu-dashboard 끝 -->
 
     <script>
+        function renderFsPromoTop10() {
+            let top10 = [];
+            if (typeof DASHBOARD_DATA !== 'undefined' && DASHBOARD_DATA.FS_PROMO_TOP10) {
+                top10 = DASHBOARD_DATA.FS_PROMO_TOP10;
+            }
+
+            const targetTbody = document.getElementById('fsPromoTop10Tbody');
+            if (!targetTbody) return;
+
+            if (top10.length === 0) {
+                targetTbody.innerHTML = '<tr><td colspan="6" style="text-align: center; color: var(--muted); padding: 20px;">절감 내역이 없습니다. (데이터 소스를 확인하세요)</td></tr>';
+                return;
+            }
+
+            const maxSav = top10.length > 0 ? top10[0].savings : 0;
+            
+            targetTbody.innerHTML = top10.map((item, idx) => {
+                const pct = maxSav > 0 ? (item.savings / maxSav * 100) : 0;
+                return `
+                    <tr>
+                        <td style="text-align: center; font-weight: bold; color: ${idx < 3 ? '#FFD100' : 'var(--text)'};">${idx + 1}</td>
+                        <td>${item.code}</td>
+                        <td style="max-width: 200px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="${item.name}">${item.name}</td>
+                        <td style="text-align: center; white-space: nowrap;">${item.manager}</td>
+                        <td style="text-align: right; font-weight: bold; color: var(--a2);">${Math.round(item.savings / 1000000).toLocaleString()}</td>
+                        <td style="vertical-align: middle;">
+                            <div style="width: 100%; background: var(--border); border-radius: 4px; height: 10px; overflow: hidden;">
+                                <div style="width: ${pct}%; background: ${idx < 3 ? '#FFD100' : '#00A0E9'}; height: 100%;"></div>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
         function switchMenu(menuId) {
             document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
             document.querySelector('[data-target="' + menuId + '"]').classList.add('active');
@@ -1157,6 +1280,8 @@
                 if (tbody && tbody.children.length === 0) {
                     loadActivity(true);
                 }
+            } else if (menuId === 'menu-fspromo') {
+                if (typeof renderFsPromoTop10 === 'function') renderFsPromoTop10();
             }
         }
 
@@ -1196,6 +1321,17 @@
         }, 1000);
 
         function doSearch() {
+            const full = (v) => {
+                if (v === null || v === undefined || isNaN(v)) return "0";
+                return Math.round(v).toLocaleString();
+            };
+            const m_fmt = (v) => {
+                if (!v) return "0";
+                if (Math.abs(v) >= 100000000) return (v / 100000000).toFixed(1) + "억";
+                if (Math.abs(v) >= 10000) return Math.round(v / 10000).toLocaleString() + "만";
+                return Math.round(v).toLocaleString();
+            };
+
             const text = document.getElementById('searchInputs').value;
             const tokens = text.split(/[\n,]+/).map(t => t.trim()).filter(t => t.length > 0);
             const tbody = document.getElementById('searchTbody');
@@ -1206,7 +1342,7 @@
             const fn = document.getElementById('filt-n').value.trim().toLowerCase();
             const fv = document.getElementById('filt-v').value.trim().toLowerCase();
 
-            if (tokens.length === 0) {
+            if (tokens.length === 0 && !fc && !fn && !fv) {
                 tbody.innerHTML = '<tr><td colspan="9" style="text-align:center; padding:80px; color:var(--muted);">검색어를 입력하세요.</td></tr>';
                 resultCount.textContent = '검색 대기 중...';
                 return;
@@ -1255,7 +1391,7 @@
             <td style="padding:12px; color:var(--muted); font-size:0.85rem;">${v.v}</td>
             <td style="padding:12px; font-size:0.85rem;">
                 <div style="font-weight:bold;">총 ${full(v.tq)}</div>
-                <div style="color:var(--muted); font-size:0.75rem;">1월:${full(v.q1)} | 2월:${full(v.q2)} | 3월:${full(v.q3)}</div>
+                <div style="color:var(--muted); font-size:0.75rem;">1월:${full(v.q1)} | 2월:${full(v.q2)} | 3월:${full(v.q3)}<br>4월:${full(v.q4)} | 5월:${full(v.q5)}</div>
             </td>
             <td align="right" style="padding:12px; font-weight:600;">${v.rb !== '-' ? '₩' + full(v.rb) : '-'}</td>
             <td align="right" style="padding:12px; color:var(--muted);">₩${full(Math.round(v.ap))}</td>
@@ -1263,7 +1399,6 @@
                 <div style="font-weight:bold; color:var(--a1);">${m_fmt(v.ts)}</div>
                 <div style="color:var(--muted); font-size:0.75rem;">${full(v.ts)}원</div>
             </td>
-            <td align="right" style="padding:12px; font-weight:bold; color:${v.prof < 0 ? '#ff4d6d' : 'var(--a2)'};">${v.prof.toFixed(1)}%</td>
             <td style="padding:12px; font-size:0.85rem; color:var(--a1);">${v.top3}</td>
         </tr>
     `).join('');
@@ -1281,11 +1416,10 @@
                 "상품코드": String(v.c),
                 "상품명": String(v.n),
                 "협력사": String(v.v),
-                "1월수량": v.q1, "2월수량": v.q2, "3월수량": v.q3, "총수량": v.tq,
+                "1월수량": v.q1, "2월수량": v.q2, "3월수량": v.q3, "4월수량": v.q4, "5월수량": v.q5, "총수량": v.tq,
                 "실구매가": v.rb,
                 "평균판매단가": Math.round(v.ap),
                 "총공급가액(매출)": v.ts,
-                "이익률(%)": v.prof.toFixed(1),
                 "최다사용본점Top3": v.top3
             }));
             const ws = XLSX.utils.json_to_sheet(data);
