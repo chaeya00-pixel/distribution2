@@ -789,8 +789,8 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 
 
-    <script src="data.js?v=1782317825"></script>
-    <script src="search_data.js?v=260605"></script>
+    <script src="data.js?v=999999"></script>
+    <script src="search_data.js?v=999999"></script>
     <script>
         const RAW_DATA = typeof DASHBOARD_DATA !== 'undefined' ? DASHBOARD_DATA.RAW_DATA : {rows: [], team_list: [], gubun_list: []};
         // SEARCH_DATA is now loaded directly from search_data.js
@@ -2011,7 +2011,12 @@ function saveActivity(isSilent = false) {
                 if (typeof INITIAL_ACTIVITY_DATA !== 'undefined' && Array.isArray(INITIAL_ACTIVITY_DATA) && INITIAL_ACTIVITY_DATA.length > 0) {
                     tbody.innerHTML = '';
                     INITIAL_ACTIVITY_DATA.forEach(d => {
-                        addActivityRow(d);
+                        try {
+                            addActivityRow(d);
+                        } catch(err) {
+                            console.error("addActivityRow error:", err);
+                            alert("렌더링 오류 발생: " + err.message);
+                        }
                     });
                     if (!isAuto) alert('기본 시뮬레이션 데이터를 불러왔습니다.');
                 } else {
@@ -2019,7 +2024,7 @@ function saveActivity(isSilent = false) {
                         alert('저장된 데이터가 없습니다.');
                     } else {
                         if (tbody.children.length === 0) {
-                            addActivityRow();
+                            try { addActivityRow(); } catch(e) {}
                         }
                     }
                 }
