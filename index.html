@@ -789,13 +789,14 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 
 
-    <script src="data.js?v=999999"></script>
-    <script src="search_data.js?v=999999"></script>
+    <script src="data.js?v=1000001"></script>
+    <script src="search_data.js?v=1000001"></script>
     <script>
-        const RAW_DATA = typeof DASHBOARD_DATA !== 'undefined' ? DASHBOARD_DATA.RAW_DATA : {rows: [], team_list: [], gubun_list: []};
+        window.RAW_DATA = typeof DASHBOARD_DATA !== 'undefined' ? DASHBOARD_DATA.RAW_DATA : {rows: [], team_list: [], gubun_list: []};
         // SEARCH_DATA is now loaded directly from search_data.js
-        const ACT_MONTH4_DATA = typeof DASHBOARD_DATA !== 'undefined' ? DASHBOARD_DATA.ACT_MONTH4_DATA : {};
-        const INITIAL_ACTIVITY_DATA = typeof DASHBOARD_DATA !== 'undefined' ? DASHBOARD_DATA.INITIAL_ACTIVITY_DATA : [];
+        window.ACT_MONTH4_DATA = typeof DASHBOARD_DATA !== 'undefined' ? DASHBOARD_DATA.ACT_MONTH4_DATA : {};
+        window.ACT_MONTH5_DATA = typeof DASHBOARD_DATA !== 'undefined' ? DASHBOARD_DATA.ACT_MONTH5_DATA : {};
+        window.INITIAL_ACTIVITY_DATA = typeof DASHBOARD_DATA !== 'undefined' ? DASHBOARD_DATA.INITIAL_ACTIVITY_DATA : [];
     </script>
 </head>
 
@@ -2010,14 +2011,16 @@ function saveActivity(isSilent = false) {
             } else {
                 if (typeof INITIAL_ACTIVITY_DATA !== 'undefined' && Array.isArray(INITIAL_ACTIVITY_DATA) && INITIAL_ACTIVITY_DATA.length > 0) {
                     tbody.innerHTML = '';
+                    let hasError = false;
                     INITIAL_ACTIVITY_DATA.forEach(d => {
                         try {
                             addActivityRow(d);
                         } catch(err) {
                             console.error("addActivityRow error:", err);
-                            alert("렌더링 오류 발생: " + err.message);
+                            hasError = true;
                         }
                     });
+                    if (hasError) console.warn("일부 데이터를 불러오는 중 렌더링 오류가 발생했습니다.");
                     if (!isAuto) alert('기본 시뮬레이션 데이터를 불러왔습니다.');
                 } else {
                     if (!isAuto) {
