@@ -791,6 +791,7 @@
 
     <script src="data.js?v=1000001"></script>
     <script src="search_data.js?v=1000001"></script>
+    <script src="files.js?v=1000001"></script>
     <script>
         window.RAW_DATA = typeof DASHBOARD_DATA !== 'undefined' ? DASHBOARD_DATA.RAW_DATA : {rows: [], team_list: [], gubun_list: []};
         // SEARCH_DATA is now loaded directly from search_data.js
@@ -805,18 +806,15 @@
     <header style="padding-bottom:0; flex-direction:column; align-items:stretch; border-bottom:none; gap:10px;">
         <div style="display:flex; justify-content:space-between; align-items:flex-start;">
             <div>
-                <h1>📊 상품별 매출집계 대시보드 <span
-                        style="font-size:0.6em; background:#3fb950; color:#fff; padding:2px 8px; border-radius:10px; margin-left:10px; vertical-align:middle;">DATA
-                        VERIFIED ✅</span></h1>
-                <p>2601 ~ 2605 통합</p>
+                <h1>📊 상품별 매출집계 대시보드</h1>
+                <p>26년 상반기</p>
             </div>
-            <div class="badge" id="totalBadge" style="flex-shrink:0;">총 로딩중…</div>
         </div>
 
         <nav style="display:flex; gap:6px; border-bottom:2px solid var(--border); padding:0 10px;">
             <button class="nav-btn active" data-target="menu-fspromo" onclick="switchMenu('menu-fspromo')">📈 KPI)FS 프로모션 월 절감액</button>
             <button class="nav-btn" data-target="menu-search" onclick="switchMenu('menu-search')">🔍 상품 조회</button>
-            <button class="nav-btn" data-target="menu-activity" onclick="switchMenu('menu-activity')">💰 절감
+            <button class="nav-btn" data-target="menu-activity" onclick="switchMenu('menu-activity')" style="display:none;">💰 절감
                 Activity</button>
             <button class="nav-btn" data-target="menu-cost-reduction" onclick="switchMenu('menu-cost-reduction')">📉 유통상품 원가절감</button>
         </nav>
@@ -847,8 +845,8 @@
                     <h3 style="margin-bottom: 15px; color: var(--text); font-size: 1.1rem; display: flex; justify-content: space-between; align-items: center;">
                         <span>🏆 절감액 상위 품목 랭킹 Top 20</span>
                         <div>
-                            <a href="26년 상반기 FS프로모션 데이터.xlsx" download="26년 상반기 FS프로모션 데이터.xlsx" style="display: inline-block; padding: 4px 10px; font-size: 0.75rem; border-radius: 4px; background: #107c41; color: white; border: none; cursor: pointer; margin-right: 5px; text-decoration: none;">엑셀 다운로드</a>
-                            <button onclick="renderFsPromoTop10()" style="padding: 4px 10px; font-size: 0.75rem; border-radius: 4px; background: var(--surface2); color: var(--text); border: 1px solid var(--border); cursor: pointer;">새로고침</button>
+                            <button onclick="downloadBase64Excel('26년 상반기 FS프로모션 데이터.xlsx')" style="display: inline-block; padding: 4px 10px; font-size: 0.75rem; border-radius: 4px; background: #107c41; color: white; border: none; cursor: pointer; margin-right: 5px;">엑셀 다운로드</button>
+                            <button id="promoViewToggle" onclick="togglePromoView()" style="display: inline-block; padding: 4px 10px; font-size: 0.75rem; border-radius: 4px; background: var(--surface2); color: var(--text); border: 1px solid var(--border); cursor: pointer;">본점별 보기</button>
                         </div>
                     </h3>
                     <div style="overflow-x: auto;">
@@ -1071,7 +1069,10 @@
         </script>
         
         <div id="menu-cost-reduction" class="menu-view" style="display:none; padding: 20px;">
-            <h2 style="margin-bottom: 20px; color: var(--text);">📉 유통상품 원가절감</h2>
+            <h2 style="margin-bottom: 20px; color: var(--text); display: flex; justify-content: space-between; align-items: center;">
+                <span>📉 유통상품 원가절감</span>
+                <button onclick="downloadBase64Excel('26년 상반기 전년전월인상 re.xlsx')" style="font-size: 0.8rem; padding: 6px 12px; background: #107c41; color: white; border-radius: 6px; border: none; cursor: pointer; font-weight: 500;">백데이터 엑셀 다운로드</button>
+            </h2>
             
             <div style="background: var(--surface2); padding: 15px; border-radius: 8px; border: 1px solid var(--border); margin-bottom: 20px; display: flex; gap: 20px; align-items: center;">
                 <div>
@@ -1164,7 +1165,7 @@
                             <th style="padding:12px; text-align:left; color:var(--muted); font-size:0.75rem;">협력사</th>
                             <th style="padding:12px; text-align:left; color:var(--muted); font-size:0.75rem;">월별 사용량
                             </th>
-                            <th style="padding:12px; text-align:right; color:var(--muted); font-size:0.75rem;">실구매가<br><span style="font-size:0.65rem;">(6/5일 기준)</span></th>
+                            <th style="padding:12px; text-align:right; color:var(--muted); font-size:0.75rem;">실구매가<br><span style="font-size:0.65rem;">(7/21일 기준)</span></th>
                             <th style="padding:12px; text-align:right; color:var(--muted); font-size:0.75rem;">평균 판매단가
                             </th>
                             <th style="padding:12px; text-align:right; color:var(--muted); font-size:0.75rem;">총 매출금액
@@ -1357,12 +1358,18 @@
             
             const compareType = document.querySelector('input[name="cost_compare"]:checked').value; // 'yoy' or 'mom'
             const month = document.getElementById('costMonthSelect').value; // 'total', 'm1', ...
+            
+            const compareStr = compareType === 'yoy' ? '전년동월비' : '전월비';
 
             // --- 1. 차트 데이터 가공 ---
             const catArr = [];
             const mgrMap = {};
+            const allowedCats = new Set();
 
             data.categories.forEach(item => {
+                if (item.base !== compareStr) return;
+                allowedCats.add(item.category);
+                
                 const val = item[compareType][month];
                 catArr.push({ category: item.category, value: val });
                 
@@ -1374,13 +1381,13 @@
             catArr.sort((a, b) => b.value - a.value);
             
             const catLabels = catArr.map(x => x.category);
-            const catValues = catArr.map(x => x.value / 1000000); // 백만원 단위
+            const catValues = catArr.map(x => Math.round((x.value / 1000000) * 10) / 10); // 백만원 단위, 소수점 첫째자리까지
             const catColors = catValues.map(v => v > 0 ? '#d73a49' : '#0366d6');
 
             const mgrArr = Object.keys(mgrMap).map(k => ({ manager: k, value: mgrMap[k] }));
             mgrArr.sort((a, b) => b.value - a.value);
             const mgrLabels = mgrArr.map(x => x.manager);
-            const mgrValues = mgrArr.map(x => x.value / 1000000);
+            const mgrValues = mgrArr.map(x => Math.round((x.value / 1000000) * 10) / 10); // 소수점 첫째자리까지
             const mgrColors = mgrValues.map(v => v > 0 ? '#d73a49' : '#0366d6');
 
             // --- 카테고리 차트 렌더링 ---
@@ -1398,8 +1405,11 @@
                 },
                 options: {
                     responsive: true,
-                    plugins: { legend: { display: false } },
-                    scales: { y: { ticks: { callback: v => v.toLocaleString() } } }
+                    plugins: { 
+                        legend: { display: false },
+                        tooltip: { callbacks: { label: function(context) { return context.parsed.y.toLocaleString(undefined, {minimumFractionDigits:0, maximumFractionDigits:1}) + ' 백만원'; } } }
+                    },
+                    scales: { y: { ticks: { callback: v => v.toLocaleString(undefined, {minimumFractionDigits:0, maximumFractionDigits:1}) } } }
                 }
             });
 
@@ -1419,14 +1429,19 @@
                 options: {
                     responsive: true,
                     indexAxis: 'y',
-                    plugins: { legend: { display: false } },
-                    scales: { x: { ticks: { callback: v => v.toLocaleString() } } }
+                    plugins: { 
+                        legend: { display: false },
+                        tooltip: { callbacks: { label: function(context) { return context.parsed.x.toLocaleString(undefined, {minimumFractionDigits:0, maximumFractionDigits:1}) + ' 백만원'; } } }
+                    },
+                    scales: { x: { ticks: { callback: v => v.toLocaleString(undefined, {minimumFractionDigits:0, maximumFractionDigits:1}) } } }
                 }
             });
 
             // --- 2. 품목 테이블 가공 ---
             const itemArr = [];
             data.items.forEach(item => {
+                if (!allowedCats.has(item.category)) return;
+                
                 let impact = 0;
                 if (month === 'total') {
                     for(let i=1; i<=6; i++) {
@@ -1725,7 +1740,7 @@ function switchMenu(menuId) {
             <td style="padding:12px; color:var(--muted); font-size:0.85rem;">${v.v}</td>
             <td style="padding:12px; font-size:0.85rem;">
                 <div style="font-weight:bold;">총 ${full(v.tq)}</div>
-                <div style="color:var(--muted); font-size:0.75rem;">1월:${full(v.q1)} | 2월:${full(v.q2)} | 3월:${full(v.q3)}<br>4월:${full(v.q4)} | 5월:${full(v.q5)}</div>
+                <div style="color:var(--muted); font-size:0.75rem;">1월:${full(v.q1)} | 2월:${full(v.q2)} | 3월:${full(v.q3)}<br>4월:${full(v.q4)} | 5월:${full(v.q5)} | 6월:${full(v.q6)}</div>
             </td>
             <td align="right" style="padding:12px; font-weight:600;">${v.rb !== '-' ? '₩' + full(v.rb) : '-'}</td>
             <td align="right" style="padding:12px; color:var(--muted);">₩${full(Math.round(v.ap))}</td>
@@ -1733,7 +1748,9 @@ function switchMenu(menuId) {
                 <div style="font-weight:bold; color:var(--a1);">${m_fmt(v.ts)}</div>
                 <div style="color:var(--muted); font-size:0.75rem;">${full(v.ts)}원</div>
             </td>
-            <td style="padding:12px; font-size:0.85rem; color:var(--a1); cursor:pointer;" onmouseenter="showTeamChart(event, '${v.c}')" onmousemove="moveTeamChart(event)" onmouseleave="hideTeamChart()">${v.top3}</td>
+            <td style="padding:12px; font-size:0.85rem; color:var(--a1); cursor:pointer;" title="더블클릭하여 본점별 1~6월 상세 사용량 엑셀 다운로드" ondblclick="downloadHqDetail('${v.c}')" onmouseenter="showTeamChart(event, '${v.c}')" onmousemove="moveTeamChart(event)" onmouseleave="hideTeamChart()">
+                ${v.top3}<br><span style="font-size:0.7em; color:var(--muted); font-weight:normal;">(더블클릭: 상세 엑셀)</span>
+            </td>
         </tr>
     `).join('');
 
@@ -1750,7 +1767,7 @@ function switchMenu(menuId) {
                 "상품코드": String(v.c),
                 "상품명": String(v.n),
                 "협력사": String(v.v),
-                "1월수량": v.q1, "2월수량": v.q2, "3월수량": v.q3, "4월수량": v.q4, "5월수량": v.q5, "총수량": v.tq,
+                "1월수량": v.q1, "2월수량": v.q2, "3월수량": v.q3, "4월수량": v.q4, "5월수량": v.q5, "6월수량": v.q6, "총수량": v.tq,
                 "실구매가": v.rb,
                 "평균판매단가": Math.round(v.ap),
                 "총공급가액(매출)": v.ts,
@@ -1761,6 +1778,64 @@ function switchMenu(menuId) {
             XLSX.utils.book_append_sheet(wb, ws, "조회결과");
             XLSX.writeFile(wb, "상품조회결과_2603.xlsx");
         }
+        function downloadHqDetail(pCode) {
+            if (!searchDataMap) buildSearchDataMap();
+            const item = searchDataMap[pCode];
+            if (!item || !item.hq_m) {
+                alert('본점별 상세 사용량 데이터가 존재하지 않습니다.');
+                return;
+            }
+            
+            const rows = [];
+            for (const [hq, qtyArr] of Object.entries(item.hq_m)) {
+                if (hq === '미분류') continue;
+                const total = qtyArr.reduce((a, b) => a + b, 0);
+                if (total === 0) continue;
+                
+                let teamName = "미분류";
+                if (typeof HQ_TEAM_MAP !== 'undefined' && HQ_TEAM_MAP[hq]) {
+                    teamName = HQ_TEAM_MAP[hq];
+                }
+                
+                rows.push({
+                    "사업팀명": teamName,
+                    "본점명": hq,
+                    "1월수량": qtyArr[0] || 0,
+                    "2월수량": qtyArr[1] || 0,
+                    "3월수량": qtyArr[2] || 0,
+                    "4월수량": qtyArr[3] || 0,
+                    "5월수량": qtyArr[4] || 0,
+                    "6월수량": qtyArr[5] || 0,
+                    "총수량": total
+                });
+            }
+            if (rows.length === 0) {
+                alert('사용 내역이 있는 본점이 없습니다.');
+                return;
+            }
+            
+            rows.sort((a, b) => b["총수량"] - a["총수량"]);
+            
+            const ws = XLSX.utils.json_to_sheet(rows);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "상세사용량");
+            const safeName = (item.n || pCode).replace(/[/\\?%*:|"<>]/g, '-');
+            XLSX.writeFile(wb, `본점별_상세사용량_${safeName}.xlsx`);
+        }
+        
+        function downloadBase64Excel(fileName) {
+            if (typeof EXCEL_FILES === 'undefined' || !EXCEL_FILES[fileName]) {
+                alert('엑셀 데이터를 찾을 수 없거나 파일이 너무 큽니다. 잠시 후 다시 시도해 주세요.');
+                return;
+            }
+            const link = document.createElement("a");
+            link.href = "data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64," + EXCEL_FILES[fileName];
+            link.download = fileName;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+
         function clearSearch() { document.getElementById('searchInputs').value = ''; document.getElementById('filt-c').value = ''; document.getElementById('filt-n').value = ''; document.getElementById('filt-v').value = ''; doSearch(); }
         // --- 절감 Activity ---
         // ===== 사업부 구분 매핑 (절감 액티비티) =====
